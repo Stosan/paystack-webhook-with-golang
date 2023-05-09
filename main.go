@@ -20,7 +20,7 @@ func main() {
 	
 
 	// Create a HTTP server to listen for Paystack webhook requests
-	http.HandleFunc("/paystack-webhook", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
 		
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -34,7 +34,7 @@ func main() {
 		}
 		
 		respData := []byte(paymentDetails)
-		payld := datamodels.RealData{}                          // Instantiate the struct
+		payld := datamodels.FinalData{}                          // Instantiate the struct
 		json_err := json.Unmarshal(respData, &payld) // Unmarshal the byte data
 		if json_err != nil {
 			fmt.Printf("error unmarshalling data:%v", json_err.Error())
@@ -45,7 +45,7 @@ func main() {
 		payld_data, _ := json.Marshal(payld)
 		json.Unmarshal(payld_data, &paymentdataMap)
 		fmt.Print(paymentdataMap)
-
+fmt.Fprint(w,paymentdataMap)
 		// Return a success response
 		w.WriteHeader(http.StatusOK)
 	})

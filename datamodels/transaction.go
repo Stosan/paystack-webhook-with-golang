@@ -6,8 +6,7 @@ import (
 	"strconv"
 )
 
-
-type RealData struct {
+type FinalData struct {
 	/*
 		struct data for finaldata after unmarshalling
 	*/
@@ -25,15 +24,17 @@ type RealData struct {
 	Fees             int    `json:"paygateway_fees"`
 	FirstName        string `json:"first_name"`
 	LastName         string `json:"last_name"`
+	Channel          string `json:"channel"`
+	Country_code     string `json:"country_code"`
+	Bank             string `json:"bank"`
 }
 
-type TransactionData struct {
+type TransactionPaymentData struct {
 	/*
 		struct data for transactiondata payload from API url
 	*/
-	Status  bool
-	Message string
-	Data    []struct {
+	Event string
+	Data  struct {
 		Id               int
 		Reference        string
 		Amount           uint
@@ -50,59 +51,67 @@ type TransactionData struct {
 		}
 		Fees     int
 		Customer struct {
-			Email string
+			Email     string
+			Last_name string
+			Phone     string
+		}
+		Authorization struct {
+			Channel      string
+			Bank         string
+			Country_code string
 		}
 	}
-	Meta json.RawMessage
 }
 
-func (realData *RealData) UnmarshalJSON(data []byte) error {
+func (finalData *FinalData) UnmarshalJSON(data []byte) error {
 	/*
 		function to parse data and unmarshal to ideal json pair values
 	*/
-	var TransactionData TransactionData
+	var TransactionData TransactionPaymentData
 	err := json.Unmarshal(data, &TransactionData)
 	if err != nil {
 		return err
 	}
-	for tdindex, td := range TransactionData.Data {
+	if TransactionData.Event == "charge.success" {
 
-		if tdindex == 0 {
-			realData.Id = td.Id
-			realData.Reference = td.Reference
-			realData.Gateway_response = td.Gateway_response
-			realData.Status = td.Status
-			/*
-				Amount comes with extra 00.
-				convert amount to ideal values without the extra zeros
-				convert uint amount type to string data type
-				remove last two characters
-				convert from characters to uint64 and back to uint
-			*/
-			var AmountAsString string = strconv.FormatUint(uint64(td.Amount), 10)
-			if last := len(AmountAsString) - 2; last >= 0 && AmountAsString[last] == '0' {
-				AmountAsString = AmountAsString[:last]
-			}
-			AmountToUint64, err := strconv.ParseUint(AmountAsString, 10, 64)
-			if err != nil {
-				return fmt.Errorf("%s", err.Error())
-			}
-			AmountToUint := uint(AmountToUint64)
-			realData.Amount = AmountToUint
-			realData.Paid_at = td.Paid_at
-			realData.Created_at = td.Created_at
-			//convert meter number from string datatype to uint
-			MeterNumberToUint64, _ := strconv.ParseUint(td.Metadata.Meternumber, 10, 64)
-			realData.MeterNumber = uint(MeterNumberToUint64)
-			//convert account number from string datatype to uint
-			realData.State = td.Metadata.State
-			realData.Email = td.Customer.Email
-			realData.Mobile = td.Metadata.Phone
-			realData.FirstName = td.Metadata.First_name
-			realData.LastName = td.Metadata.Last_name
-			realData.Fees = td.Fees
+		td := TransactionData.Data
+
+		finalData.Id = td.Id
+		finalData.Reference = td.Reference
+		finalData.Gateway_response = td.Gateway_response
+		finalData.Status = td.Status
+		/*
+			Amount comes with extra 00.
+			convert amount to ideal values without the extra zeros
+			convert uint amount type to string data type
+			remove last two characters
+			convert from characters to uint64 and back to uint
+		*/
+		var AmountAsString string = strconv.FormatUint(uint64(td.Amount), 10)
+		if last := len(AmountAsString) - 2; last >= 0 && AmountAsString[last] == '0' {
+			AmountAsString = AmountAsString[:last]
 		}
+		AmountToUint64, err := strconv.ParseUint(AmountAsString, 10, 64)
+		if err != nil {
+			return fmt.Errorf("%s", err.Error())
+		}
+		AmountToUint := uint(AmountToUint64)
+		finalData.Amount = AmountToUint
+		finalData.Paid_at = td.Paid_at
+		finalData.Created_at = td.Created_at
+		//convert meter number from string datatype to uint
+		MeterNumberToUint64, _ := strconv.ParseUint(td.Metadata.Meternumber, 10, 64)
+		finalData.MeterNumber = uint(MeterNumberToUint64)
+		//convert account number from string datatype to uint
+		finalData.State = td.Metadata.State
+		finalData.Email = td.Customer.Email
+		finalData.Mobile = td.Customer.Phone
+		finalData.FirstName = td.Metadata.First_name
+		finalData.LastName = td.Customer.Last_name
+		finalData.Fees = td.Fees
+		finalData.Channel = td.Authorization.Channel
+		finalData.Bank = td.Authorization.Bank
+		finalData.Country_code = td.Authorization.Country_code
 	}
-
 	return nil
 }
