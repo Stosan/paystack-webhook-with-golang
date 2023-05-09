@@ -1,0 +1,11 @@
+version: "3"
+services:
+  paystack_webhook:
+    container_name: paystack_webhook
+    restart: always
+    build: .
+    image: paystack_webhook:24112022
+    ports:
+      - "9000:9000"
+    stdin_open: true
+    tty: true
